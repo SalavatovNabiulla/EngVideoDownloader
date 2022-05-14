@@ -1,3 +1,31 @@
+GET https://engvideo.pro/en/serials/chernobyl/ HTTP/1.1
+Host: engvideo.pro
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:100.0) Gecko/20100101 Firefox/100.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+Accept-Language: en-US,ru-RU;q=0.8,ru;q=0.5,en;q=0.3
+Accept-Encoding: gzip, deflate, br
+Connection: keep-alive
+Cookie: markStatisticsSerial=18974%2C18976%2C18975%2C18978; csrftoken=cEXASQWMy0GJmKjYaKVDwEKaL0BD3iKO; sessionid=k2hcixmuhb6d7qmp7c3aisai7xm64jt4; _ga_HG0KKF8VXF=GS1.1.1652558099.1.1.1652560271.0; _ga=GA1.1.1342678814.1652558100; _gid=GA1.2.534988935.1652558102; __utma=192474494.1342678814.1652558100.1652558102.1652558102.1; __utmb=192474494.19.10.1652558102; __utmc=192474494; __utmz=192474494.1652558102.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); _ym_uid=1652558102217581575; _ym_d=1652558102; _ym_isad=2; _ym_visorc=w; __gads=ID=194c528ed58c65d4-221428ee94cd002c:T=1652558103:S=ALNI_MZHSrdx4khXGJUrGxyl1qnQVariSw; __gpi=UID=0000062fc156b102:T=1652558103:RT=1652558103:S=ALNI_MaD3he1jqL9cR6slfLgZWPYqK4-ZA; cto_bundle=Ttnww19Yc2xTaGNuTGpNSnVaU0FZdzV6ODhqektDbDZ0SFpGODN0WnhLcFE4RTFLJTJCSWlJdXlLS2FPJTJGS3NVV1NyZjJYZHNZdG5Fa2JneUlYUDV0WTNsSXJBZXZCZmglMkZiN05zQlJNeTVWaEgweGJLJTJCMW5sY2tvcXRuaXJXSEhwUiUyRkdxMUNNOGpKTmZtMTNPanBEYXprMmlTM0Z3JTNEJTNE; check=t; cookielaw_accepted=1; subtitles=en; __utmt=1
+Upgrade-Insecure-Requests: 1
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+
+
+HTTP/1.1 200 OK
+Server: nginx/1.16.1
+Date: Sat, 14 May 2022 20:31:24 GMT
+Content-Type: text/html; charset=utf-8
+Connection: keep-alive
+Vary: Accept-Encoding
+Vary: Cookie
+X-Frame-Options: SAMEORIGIN
+Content-Language: en
+Set-Cookie: csrftoken=cEXASQWMy0GJmKjYaKVDwEKaL0BD3iKO; expires=Sat, 13-May-2023 20:31:24 GMT; Max-Age=31449600; Path=/
+Access-Control-Allow-Origin: *
+Content-Length: 51115
+
 <!DOCTYPE html>
 
 
@@ -182,7 +210,7 @@
 
 
 <form id="lang_form" class="navbar-form video-js-block" action="/en/i18n/setlang/" method="post">
-    <input type='hidden' name='csrfmiddlewaretoken' value='hn3LZLuOSevcCBc0mWWUiCbTL1AxwOvg' />
+    <input type='hidden' name='csrfmiddlewaretoken' value='cEXASQWMy0GJmKjYaKVDwEKaL0BD3iKO' />
 
     <input type="hidden" name="next" value="/serials/chernobyl/"/>
     <input type="hidden" name="language" value="en"/>
@@ -1034,23 +1062,6 @@
 
 
 <link rel="stylesheet" href="/static/cookielaw/css/cookielaw.css">
-
-
-<div id="CookielawBanner">
-    <script>
-    var MG_setRequestNonPersonalizedAds = 1;
-    </script>
-    <div class="pos_rel">
-        <div>
-            <div class="margin_b10">
-                This website uses cookies to ensure you get the best experience on our website.
-                <div><a class="link_more" href="/privacy-policy/" target="_blank">Learn more</a></div>
-            </div>
-            <a class="btn btn-primary btn-block" href="javascript:Cookielaw.createCookielawCookie();">I agree!</a>
-        </div>
-    </div>
-</div>
-
 
 </body>
 </html>

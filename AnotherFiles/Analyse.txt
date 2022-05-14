@@ -1,0 +1,1 @@
+--------------------HTML Road--------------------block_detail_video	video_id		blk			...				clearfix					pull-left										video-js--------------------Data in HTML--------------------data-id="*"data-href="/ru/series/*/video/"
