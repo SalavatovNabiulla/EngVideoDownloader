@@ -15,6 +15,7 @@ def start_driver():
     service = Service(GeckoDriverManager().install())
     options = webdriver.FirefoxOptions()
     options.headless = True
+    options.add_argument("--mute-audio")
     driver = webdriver.Firefox(service=service,options=options)
     try:
         driver.get(url)
@@ -39,7 +40,7 @@ def start_driver():
                     links.append(video_link)
                 print("Конец обработки сезона: " + season.text)
             except Exception as ex:
-                print("Сезон "+season.text+" не был обработан")
+                print("Ошибка обработки сезона: " + season.text)
     except Exception as ex:
         print(ex)
     finally:
