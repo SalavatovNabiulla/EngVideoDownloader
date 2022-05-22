@@ -84,8 +84,18 @@ def create_driver():
     driver = webdriver.Firefox(service=service,options=options)
     return driver
 def start_processing():
-    for thread in threads:
-        thread.start()
+    while len(threads) != 0:
+        active_threads = []
+        for index in range(2):
+            try:
+                threads[index].start()
+                active_threads.append(threads[index])
+                threads.pop(index)
+            except Exception as ex:
+                pass
+        for active_thread in active_threads:
+            active_thread.join()
+        active_threads.clear()
 def stop_processing():
     for thread in threads:
         thread.join()
