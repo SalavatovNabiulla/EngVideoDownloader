@@ -8,8 +8,6 @@ import subprocess
 import os
 
 #Public variables
-url = ""
-path_to_exe = ""
 links = []
 
 #Parsing functions
@@ -75,15 +73,12 @@ def start_video_downloading():
     subprocess.Popen([path_to_exe, links_path])
 
 #Main functions
-def start_user_interface():
-    url = input("Введите ссылку на сериал: ")
-    path_to_exe = input("Введите путь до DownloadMaster: ") + "dmaster.exe"
-    #TODO: Автоматическая установка приложения DownloadMaster из установщика или интернета
-    #TODO: Автоматическая установка библиотеки Selenium
+#TODO: Автоматическая установка приложения DownloadMaster из установщика или интернета
+#TODO: Автоматическая установка библиотеки Selenium
 def create_driver():
     service = Service(GeckoDriverManager().install())
     options = webdriver.FirefoxOptions()
-    options.headless = True
+    options.headless = False
     options.add_argument("--mute-audio")
     driver = webdriver.Firefox(service=service,options=options)
     return driver
@@ -93,5 +88,6 @@ def start_program():
     start_video_downloading()
 
 #Main
-start_user_interface()
+url = input("Введите ссылку на сериал: ")
+path_to_exe = "C:\\Program Files (x86)\\Download Master\\dmaster.exe"
 start_program()
