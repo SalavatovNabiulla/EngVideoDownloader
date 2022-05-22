@@ -1,21 +1,19 @@
 #Imports
-import asyncio
-
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.service import Service
 from webdriver_manager.firefox import GeckoDriverManager
+from threading import Thread
 import time
 import subprocess
 import os
 
 #Public variables
 links = []
-tasks = []
-loop = asyncio.new_event_loop()
+threads = []
 
 #Parsing functions
-async def process_current_season(index):
+def process_current_season(index):
     # TODO: Добавить прогресс обработки сезона
     driver = create_driver()
     driver = set_current_season(driver, index)
@@ -43,8 +41,7 @@ async def process_current_season(index):
         driver.close()
 def process_all_seasons():
     for index in range(get_seasons_count()):
-        tasks.append(loop.create_task(process_current_season(index)))
-        #process_current_season(driver)
+        threads.append(Thread(target=process_current_season, args=(index,)))
 def get_seasons_count():
     driver = create_driver()
     driver.get(url)
@@ -86,11 +83,17 @@ def create_driver():
     options.add_argument("--disable-blink-features")
     driver = webdriver.Firefox(service=service,options=options)
     return driver
+def start_processing():
+    for thread in threads:
+        thread.start()
+def stop_processing():
+    for thread in threads:
+        thread.join()
 
 #Main
 url = input("Введите ссылку на сериал: ")
 path_to_exe = "C:\\Program Files (x86)\\Download Master\\dmaster.exe"
 start_parsing()
-wait = asyncio.wait(tasks)
-loop.run_until_complete(wait)
+start_processing()
+stop_processing()
 start_video_downloading()
