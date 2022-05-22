@@ -1,1 +1,2 @@
-# EngvideoDownloader Скрипт для загрузки всех сезонов сериала из EngVideo в оригинальной озвучке для тех кто хочет выучить английский
+# EngvideoDownloader
+ Parser for download EngVideo
