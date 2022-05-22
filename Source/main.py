@@ -1,4 +1,6 @@
 #Imports
+import asyncio
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.service import Service
@@ -9,11 +11,15 @@ import os
 
 #Public variables
 links = []
+tasks = []
+loop = asyncio.new_event_loop()
 
 #Parsing functions
-def process_current_season(driver,tab):
+async def process_current_season(index):
     # TODO: Добавить прогресс обработки сезона
-    driver.switch_to.window(tab)
+    driver = create_driver()
+    driver = set_current_season(driver, index)
+    print("Начало обработки сезона "+str(index+1))
     try:
         #TODO: Элемент с классом vjs-poster перекрывает элемент с тэгом li
         episodes = driver.find_element(By.CLASS_NAME, "tab-content").find_element(By.CLASS_NAME, "active").find_element(By.TAG_NAME, "ul").find_elements(By.TAG_NAME, "li")
@@ -30,35 +36,31 @@ def process_current_season(driver,tab):
                 links.append(video_link)
             except Exception as ex:
                 print(ex)
+        print("Конец обработки сезона " + str(index+1))
     except Exception as ex:
-        print(ex)
+        print("Ошибка обработки сезона "+str(index+1))
     finally:
         driver.close()
-def process_all_seasons(driver):
-    # TODO: Добавить асинхронную или многопоточную обработку (Чтобы каждый сезон в каждой вкладке обрабатывался отдельно)
-    for tab in driver.window_handles:
-        process_current_season(driver,tab)
-def create_tabs_for_seasons(driver):
+def process_all_seasons():
+    for index in range(get_seasons_count()):
+        tasks.append(loop.create_task(process_current_season(index)))
+        #process_current_season(driver)
+def get_seasons_count():
+    driver = create_driver()
+    driver.get(url)
+    seasons_count = driver.find_element(By.XPATH,"/html/body/div[3]/div[2]/div/div/div[5]/div[2]/div[3]/div[1]/ul").find_elements(By.TAG_NAME, "li")
+    driver.close()
+    return len(seasons_count)
+def set_current_season(driver,index):
+    driver.get(url)
+    seasons = driver.find_element(By.XPATH,"/html/body/div[3]/div[2]/div/div/div[5]/div[2]/div[3]/div[1]/ul").find_elements(By.TAG_NAME, "li")
+    seasons[index].click()
+    return driver
+def start_parsing():
     try:
-        driver.get(url)
-        seasons_count = driver.find_element(By.XPATH,"/html/body/div[3]/div[2]/div/div/div[5]/div[2]/div[3]/div[1]/ul").find_elements(By.TAG_NAME, "li")
-        for index in range(len(seasons_count)):
-            driver.switch_to.new_window('tab')
-            driver.get(url)
-            seasons = driver.find_element(By.XPATH,"/html/body/div[3]/div[2]/div/div/div[5]/div[2]/div[3]/div[1]/ul").find_elements(By.TAG_NAME, "li")
-            seasons[index].click()
-        driver.switch_to.window(driver.window_handles[0])
-        driver.close()
-    except Exception as ex:
-        pass
-def start_parsing(driver):
-    try:
-        create_tabs_for_seasons(driver)
-        process_all_seasons(driver)
+        process_all_seasons()
     except Exception as ex:
         print(ex)
-    finally:
-        driver.quit()
 
 #Downloading functions
 def start_video_downloading():
@@ -76,18 +78,19 @@ def start_video_downloading():
 #TODO: Автоматическая установка приложения DownloadMaster из установщика или интернета
 #TODO: Автоматическая установка библиотеки Selenium
 def create_driver():
+    os.environ['WDM_LOG_LEVEL'] = '0'
     service = Service(GeckoDriverManager().install())
     options = webdriver.FirefoxOptions()
-    options.headless = False
+    options.headless = True
     options.add_argument("--mute-audio")
+    options.add_argument("--disable-blink-features")
     driver = webdriver.Firefox(service=service,options=options)
     return driver
-def start_program():
-    driver = create_driver()
-    start_parsing(driver)
-    start_video_downloading()
 
 #Main
 url = input("Введите ссылку на сериал: ")
 path_to_exe = "C:\\Program Files (x86)\\Download Master\\dmaster.exe"
-start_program()
+start_parsing()
+wait = asyncio.wait(tasks)
+loop.run_until_complete(wait)
+start_video_downloading()
