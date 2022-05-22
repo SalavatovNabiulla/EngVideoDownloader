@@ -23,6 +23,7 @@ def start_driver():
         # TODO: Асинхронная обработка сезонов в отдельных вкладках, чтобы не ждать загрузку каждого файла
         for season in seasons:
             try:
+                print("Начало обработки сезона: " + season.text)
                 season.click()
                 #TODO: Элемент с классом vjs-poster перекрывает элемент с тэгом li
                 episodes = driver.find_element(By.CLASS_NAME, "tab-content").find_element(By.CLASS_NAME, "active").find_element(By.TAG_NAME, "ul").find_elements(By.TAG_NAME, "li")
@@ -36,8 +37,9 @@ def start_driver():
                     video_close_button.click()
                     time.sleep(1)
                     links.append(video_link)
+                print("Конец обработки сезона: " + season.text)
             except Exception as ex:
-                print("Сезон "+season.text+" не был загружен")
+                print("Сезон "+season.text+" не был обработан")
     except Exception as ex:
         print(ex)
     finally:
