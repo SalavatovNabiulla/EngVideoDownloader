@@ -1,0 +1,1 @@
+1) Parsing all series URL's with selenium2) Save them in some TXT file3) Open that file in DownloadMaster for import urls
