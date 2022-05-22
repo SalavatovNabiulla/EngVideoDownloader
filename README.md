@@ -1,2 +1,1 @@
-# EngvideoDownloader
- Parser for download all episodes of Family Guy
+# EngvideoDownloader Скрипт для загрузки всех сезонов сериала из EngVideo в оригинальной озвучке для тех кто хочет выучить английский
