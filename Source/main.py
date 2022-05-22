@@ -61,6 +61,7 @@ def start_parsing():
         print(ex)
 
 #Downloading functions
+#TODO: Сортировка серий по папкам
 def start_video_downloading():
     links_path = os.path.dirname(os.path.abspath(__file__))+'\\links.txt'
     try:
@@ -86,17 +87,17 @@ def create_driver():
     return driver
 def start_processing():
     while len(threads) != 0:
-        active_threads = []
         for index in range(4):
             try:
                 threads[index].start()
-                active_threads.append(threads[index])
+            except Exception as ex:
+                continue
+        for index in range(4):
+            try:
+                threads[index].join()
                 threads.pop(index)
             except Exception as ex:
                 continue
-        for active_thread in active_threads:
-            active_thread.join()
-        active_threads.clear()
 
 #Main
 url = input("Введите ссылку на сериал: ")
