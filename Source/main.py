@@ -17,13 +17,14 @@ def process_current_season(index):
     # TODO: Добавить прогресс обработки сезона
     driver = create_driver()
     driver = set_current_season(driver, index)
-    print("Начало обработки сезона "+str(index+1))
+    print("Обработка сезона №"+str(index+1))
     try:
         #TODO: Элемент с классом vjs-poster перекрывает элемент с тэгом li
         episodes = driver.find_element(By.CLASS_NAME, "tab-content").find_element(By.CLASS_NAME, "active").find_element(By.TAG_NAME, "ul").find_elements(By.TAG_NAME, "li")
         for episode in episodes:
             try:
-                #TODO: Обработка ошибки загрузки серии, чтобы загрузка продолжалась
+                #TODO: Исправить ошибки с перекрыванием элементов
+                #print("Обработка серии №" + str(episodes.index(episode)+1) + " сезона №" + str(index+1))
                 link = episode.find_element(By.CLASS_NAME, "margin_b5").find_element(By.TAG_NAME, "a")
                 link.click()
                 time.sleep(2)
@@ -33,10 +34,10 @@ def process_current_season(index):
                 time.sleep(1)
                 links.append(video_link)
             except Exception as ex:
-                print(ex)
-        print("Конец обработки сезона " + str(index+1))
+                #print("Ошибка обработки серии №"+str(episodes.index(episode)+1)+" сезона №"+str(index+1))
+                continue
     except Exception as ex:
-        print("Ошибка обработки сезона "+str(index+1))
+        print("Ошибка обработки сезона №"+str(index+1))
     finally:
         driver.close()
 def process_all_seasons():
@@ -86,24 +87,20 @@ def create_driver():
 def start_processing():
     while len(threads) != 0:
         active_threads = []
-        for index in range(2):
+        for index in range(4):
             try:
                 threads[index].start()
                 active_threads.append(threads[index])
                 threads.pop(index)
             except Exception as ex:
-                pass
+                continue
         for active_thread in active_threads:
             active_thread.join()
         active_threads.clear()
-def stop_processing():
-    for thread in threads:
-        thread.join()
 
 #Main
 url = input("Введите ссылку на сериал: ")
 path_to_exe = "C:\\Program Files (x86)\\Download Master\\dmaster.exe"
 start_parsing()
 start_processing()
-stop_processing()
 start_video_downloading()
