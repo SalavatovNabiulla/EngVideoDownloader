@@ -13,6 +13,7 @@ data_links = []
 
 #Parsing functions
 def start_parsing_video_links():
+    #TODO: Добавить ассинхронную обработку каждого сезона
     for m_link in media_links:
         page_path = os.path.dirname(os.path.abspath(__file__)) + '\\page.html'
         try:
