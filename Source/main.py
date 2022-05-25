@@ -144,7 +144,7 @@ url = "https://engvideo.pro/ru/serials/family-guy/"
 path = "C:\\Users\\snmsu\\Desktop\\Test\\"
 series = series(url)
 #TODO: Доделать Download manager
-queue = [series.seasons[0].episodes[0],series.seasons[1].episodes[0]]
+queue = [series.seasons[0].episodes[0]]
 downloader = download_manager(queue,path)
 while downloader.complete == False:
     os.system("cls")
