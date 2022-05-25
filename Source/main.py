@@ -71,14 +71,13 @@ class episode:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:100.0) Gecko/20100101 Firefox/100.0'
         }
         result = requests.get(self.video_link, headers=headers, stream=True)
-        # TODO: Вес контента содержится в заголовке ответа "Content-Length". На основании этого можно сделать прогресс загрузки
         status_code = result.status_code
         # TODO: Добавить обработку ошибки загрузки
         if status_code in (200,206):
             self.size = int(result.headers['Content-Length'])
             file_name = "S_" + str(self.season.number) + "_E_" + str(self.number) + ".mp4"
             with open(path + file_name, "wb") as file:
-                chunk_size = 1000
+                chunk_size = 5000
                 for chunk in result.iter_content(chunk_size=chunk_size):
                     self.download_size = self.download_size + chunk_size;
                     file.write(chunk)
