@@ -125,12 +125,16 @@ class download_manager:
 
     def __start_downloading(self):
         for episode in self.queue:
+            self.current_task = episode
             episode.download(self.path)
+        self.complete = True
 
     def __init__(self,queue,path):
         self.path = path
         self.queue = queue
         self.thread = Thread(target=self.__start_downloading,args=([]))
+        self.complete = False
+        self.current_task = None
         #
         self.thread.start()
 
@@ -140,20 +144,17 @@ url = "https://engvideo.pro/ru/serials/family-guy/"
 path = "C:\\Users\\snmsu\\Desktop\\Test\\"
 series = series(url)
 #TODO: Доделать Download manager
-queue = [series.seasons[0].episodes[0]]
+queue = [series.seasons[0].episodes[0],series.seasons[1].episodes[0]]
 downloader = download_manager(queue,path)
-start_time = time.time()
-while queue[0].downloaded == False:
+while downloader.complete == False:
     os.system("cls")
     print("---")
-    print("Start time: "+str(time.ctime(start_time)))
-    print("Total size: "+str(queue[0].size/1000000)+" MB")
-    print("Downloaded size: "+str(queue[0].download_size/1000000)+" MB")
+    print("Season number: " + str(downloader.current_task.season.number))
+    print("Series number: "+str(downloader.current_task.number))
+    print("Total size: "+str(downloader.current_task.size/1000000)+" MB")
+    print("Downloaded size: "+str(downloader.current_task.download_size/1000000)+" MB")
+    print("---")
     time.sleep(1)
-stop_time = time.time()
-print("Stop time: "+str(time.ctime(stop_time)))
-print("Amount of time: "+str((stop_time-start_time)/60)+" min")
-print("---")
 #--AnotherTODOes
 #TODO: Добавить интерфейс(Консольный или графический)
 #TODO: Добавить возможность устанавливать прокси на случай если сериал в стране заблокирован
