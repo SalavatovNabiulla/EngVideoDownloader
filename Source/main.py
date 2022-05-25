@@ -77,7 +77,7 @@ class episode:
             self.size = int(result.headers['Content-Length'])
             file_name = "S_" + str(self.season.number) + "_E_" + str(self.number) + ".mp4"
             with open(path + file_name, "wb") as file:
-                chunk_size = 5000
+                chunk_size = 256
                 for chunk in result.iter_content(chunk_size=chunk_size):
                     self.download_size = self.download_size + chunk_size;
                     file.write(chunk)
@@ -136,7 +136,7 @@ class download_manager:
 
 #--UserInterface
 
-url = "https://engvideo.pro/ru/serials/family-guy"
+url = "https://engvideo.pro/ru/serials/family-guy/"
 path = "C:\\Users\\snmsu\\Desktop\\Test\\"
 series = series(url)
 #TODO: Доделать Download manager
@@ -146,12 +146,14 @@ start_time = time.time()
 while queue[0].downloaded == False:
     os.system("cls")
     print("---")
-    print("Start time: "+time.localtime(start_time))
+    print("Start time: "+str(time.ctime(start_time)))
     print("Total size: "+str(queue[0].size/1000000)+" MB")
     print("Downloaded size: "+str(queue[0].download_size/1000000)+" MB")
-    print("---")
     time.sleep(1)
-
+stop_time = time.time()
+print("Stop time: "+str(time.ctime(stop_time)))
+print("Amount of time: "+str((stop_time-start_time)/60)+" min")
+print("---")
 #--AnotherTODOes
 #TODO: Добавить интерфейс(Консольный или графический)
 #TODO: Добавить возможность устанавливать прокси на случай если сериал в стране заблокирован
