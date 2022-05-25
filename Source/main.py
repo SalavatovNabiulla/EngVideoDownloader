@@ -136,15 +136,17 @@ class download_manager:
 
 #--UserInterface
 
-url = "https://engvideo.pro/ru/serials/chernobyl/"
+url = "https://engvideo.pro/ru/serials/family-guy"
 path = "C:\\Users\\snmsu\\Desktop\\Test\\"
 series = series(url)
 #TODO: Доделать Download manager
 queue = [series.seasons[0].episodes[0]]
 downloader = download_manager(queue,path)
+start_time = time.time()
 while queue[0].downloaded == False:
     os.system("cls")
     print("---")
+    print("Start time: "+time.localtime(start_time))
     print("Total size: "+str(queue[0].size/1000000)+" MB")
     print("Downloaded size: "+str(queue[0].download_size/1000000)+" MB")
     print("---")
@@ -153,3 +155,4 @@ while queue[0].downloaded == False:
 #--AnotherTODOes
 #TODO: Добавить интерфейс(Консольный или графический)
 #TODO: Добавить возможность устанавливать прокси на случай если сериал в стране заблокирован
+#TODO: Добавить скорость загрузки
