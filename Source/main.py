@@ -1,7 +1,10 @@
 #--Imports
+import time
+
 import requests
 import regex
 import os
+from threading import Thread
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 
@@ -73,15 +76,16 @@ class episode:
         # TODO: Добавить обработку ошибки загрузки
         if status_code in (200,206):
             self.size = int(result.headers['Content-Length'])
-            print(self.size/1000000000)
-            file_name = "S_"+str(self.season.number)+"_E_"+str(self.number)+".mp4"
-            with open(path+file_name,"wb") as file:
+            print(self.size)
+            file_name = "S_" + str(self.season.number) + "_E_" + str(self.number) + ".mp4"
+            with open(path + file_name, "wb") as file:
                 for chunk in result.iter_content(chunk_size=256):
-                    self.upload_size = self.upload_size+256;
+                    self.download_size = self.download_size + 256;
                     file.write(chunk)
-            print("Конец загрузки серии № " + str(self.number) + " сезона № " + str(self.season.number))
+                self.downloaded = True
         else:
             print("Ошибка загрузки серии (Код ошибки: "+str(status_code)+")")
+            self.downloaded = True
 
     def __set_video_link(self):
         result = requests.get(self.data_link)
@@ -110,17 +114,38 @@ class episode:
         self.data_link = 'https://engvideo.pro'
         self.video_link = ''
         self.size = 0
-        self.upload_size = 0
+        self.download_size = 0
+        self.downloaded = False
         #
         self.__set_data_link()
         self.__set_video_link()
         # TODO: Добавить определение названия серии
+#--
+class download_manager:
+
+
+    def __start_downloading(self):
+        for episode in self.queue:
+            episode.download(self.path)
+
+    def __init__(self,queue,path):
+        self.path = path
+        self.queue = queue
+        self.thread = Thread(target=self.__start_downloading(),args=([]))
+        #
+        self.thread.start()
 
 #--UserInterface
+
 url = "https://engvideo.pro/ru/serials/chernobyl/"
 path = "C:\\Users\\snmsu\\Desktop\\Test\\"
 series = series(url)
-series.seasons[0].episodes[0].download(path)
+queue = [series.seasons[0].episodes[0]]
+downloader = download_manager(queue,path)
+
+for i in range(100):
+    print(i)
+    time.sleep(1)
 
 #--AnotherTODOes
 #TODO: Добавить интерфейс(Консольный или графический)
