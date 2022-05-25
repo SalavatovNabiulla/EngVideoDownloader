@@ -1,6 +1,5 @@
 #--Imports
 import time
-
 import requests
 import regex
 import os
@@ -11,13 +10,30 @@ from urllib.parse import urlparse
 #--SystemInterface
 class series:
 
-    # TODO: Добавить функции для загрузки всех сезонов
+    def __show_progress(self):
+        while self.complete == False:
+            os.system('cls')
+            print('Сбор информации')
+            print('---------------')
+            for season in self.seasons:
+                print('Сезон номер '+str(season.number)+' - Количество серий - '+str(len(season.episodes)))
+            print('---------------')
+            time.sleep(3)
+        if self.complete:
+            os.system('cls')
+            print('Сбор информации')
+            print('---------------')
+            for season in self.seasons:
+                print('Сезон номер '+str(season.number)+' - Количество серий - '+str(len(season.episodes)))
+            print('---------------')
+            set_queue(path,self)
 
     def __set_seasons(self):
         soup = BeautifulSoup(self.source,"lxml")
         seasons = soup.find("div",class_="tab-content").find_all("div",class_="tab-pane")
         for index in range(len(seasons)):
             self.seasons.append(season(index+1,seasons[index],self))
+        self.complete = True
 
     def __set_source(self,url):
         result = requests.get(url)
@@ -25,26 +41,28 @@ class series:
         # TODO: Сделать проверку доступности сайта, получая код ответа
         self.source = result.text
 
-    def __init__(self,url):
+    def __init__(self,url,path):
         self.seasons = []
         self.source = None
         self.cookie = None
+        self.complete = False
+        self.path = path
         # TODO: Добавить информация о сеансе и Cookie
         #
+        Thread(target=self.__show_progress, args=([])).start()
         self.__set_source(url)
         self.__set_seasons()
 #--
 class season:
 
-    #TODO: Добавить функции для загрузки всех серий
-
     def __set_episodes(self):
         episodes = self.source.find("ul").find_all("li")
         for index in range(len(episodes)):
             self.episodes.append(episode(index+1,self,episodes[index]))
+        # print("Количество серий: "+str(len(self.episodes)))
 
     def __init__(self,number,source,series):
-        print("Сбор информации о сезоне номер "+str(number))
+        # print("Сбор информации о сезоне номер "+str(number))
         #--Variables
         self.number = number
         self.source = source
@@ -56,7 +74,6 @@ class season:
 class episode:
 
     def download(self,path):
-        print("Начало загрузки серии № "+str(self.number)+" сезона № "+str(self.season.number))
         headers = {
             'Accept': 'video/webm,video/ogg,video/*;q=0.9,application/ogg;q=0.7,audio/*;q=0.6,*/*;q=0.5',
             'Accept-Language': 'en-US,ru-RU;q=0.8,ru;q=0.5,en;q=0.3',
@@ -76,16 +93,20 @@ class episode:
         if status_code in (200,206):
             self.size = int(result.headers['Content-Length'])
             file_name = "S_" + str(self.season.number) + "_E_" + str(self.number) + ".mp4"
+            #
             with open(path + file_name, "wb") as file:
                 chunk_size = 256
                 for chunk in result.iter_content(chunk_size=chunk_size):
                     self.download_size = self.download_size + chunk_size;
                     file.write(chunk)
-                self.downloaded = True
+                    # print("Загружено: "+str(round(self.download_size/1000000))+"/"+str(round(self.size/1000000))+" MB")
+                self.good_download = True
+            # print("Завершение загрузки эпизода номер "+str(episode.number)+" сезона номер "+str(episode.season.number))
         else:
-            print("Ошибка загрузки серии (Код ошибки: "+str(status_code)+")")
-            self.downloaded = True
+            # print("Ошибка загрузки серии (Код ошибки: "+str(status_code)+")")
+            self.bad_download = True
 
+    #TODO: Сделать загрузку видео ссылок в потоках
     def __set_video_link(self):
         result = requests.get(self.data_link)
         status_code = result.status_code
@@ -114,7 +135,8 @@ class episode:
         self.video_link = ''
         self.size = 0
         self.download_size = 0
-        self.downloaded = False
+        self.good_download = False
+        self.bad_download = False
         #
         self.__set_data_link()
         self.__set_video_link()
@@ -122,40 +144,69 @@ class episode:
 #--
 class download_manager:
 
+    #TODO: Добавить прогресс бары
+    #TODO: Добавить сортировку по каталогам
+
+    def __show_progress(self):
+        while self.complete == False:
+            os.system('cls')
+            print("Очередь загрузки:")
+            print("-----------------")
+            for episode in self.queue:
+                if (episode.good_download == False) and (episode.bad_download == False):
+                    print("Серия номер "+str(episode.number)+" сезона номер "+str(episode.season.number)+" : "+str(round(episode.download_size/1000000))+"/"+str(round(episode.size/1000000))+" MB")
+            print("-----------------")
+            time.sleep(2)
+            complete = True
+            for episode in self.queue:
+                if (episode.good_download == False) and (episode.bad_download == False):
+                    complete = False
+            self.complete = complete
+        #TODO: Результаты загрузки (Good / Bad)
 
     def __start_downloading(self):
         for episode in self.queue:
+            # print("Начало загрузки эпизода номер "+str(episode.number)+" сезона номер "+str(episode.season.number))
             self.current_task = episode
-            episode.download(self.path)
-        self.complete = True
+            Thread(target=episode.download,args=([self.path])).start()
 
     def __init__(self,queue,path):
         self.path = path
         self.queue = queue
-        self.thread = Thread(target=self.__start_downloading,args=([]))
         self.complete = False
         self.current_task = None
         #
-        self.thread.start()
+        Thread(target=self.__show_progress,args=([])).start()
+        Thread(target=self.__start_downloading, args=([])).start()
+#--
+def set_queue(path,series):
+    ask = input('''Выберите действие:
+    1) Загрузить сериал целиком
+    2) Загрузить определенные сезоны целиком 
+    :''')
+    queue = []
+    if ask == "1":
+        for season in series.seasons:
+            for episode in season.episodes:
+                queue.append(episode)
+        downloader = download_manager(queue, path)
+    elif ask == "2":
+        seasons = input('Введите номера сезонов через запятую: ').split(',')
+        for season in seasons:
+            for episode in series.seasons[int(season) - 1].episodes:
+                queue.append(episode)
+        downloader = download_manager(queue, path)
+    else:
+        print("Ошибка выбора действия")
 
 #--UserInterface
 
-url = "https://engvideo.pro/ru/serials/family-guy/"
-path = "C:\\Users\\snmsu\\Desktop\\Test\\"
-series = series(url)
-#TODO: Доделать Download manager
-queue = [series.seasons[0].episodes[0]]
-downloader = download_manager(queue,path)
-while downloader.complete == False:
-    os.system("cls")
-    print("---")
-    print("Season number: " + str(downloader.current_task.season.number))
-    print("Series number: "+str(downloader.current_task.number))
-    print("Total size: "+str(downloader.current_task.size/1000000)+" MB")
-    print("Downloaded size: "+str(downloader.current_task.download_size/1000000)+" MB")
-    print("---")
-    time.sleep(1)
+url = input("Введите ссылку на сериал: ")
+path = input("Введите папку загрузки: ")
+if path[len(path)-1] != "\\":
+    path = path+"\\"
+series = series(url,path)
+
 #--AnotherTODOes
-#TODO: Добавить интерфейс(Консольный или графический)
 #TODO: Добавить возможность устанавливать прокси на случай если сериал в стране заблокирован
 #TODO: Добавить скорость загрузки
