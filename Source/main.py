@@ -1,7 +1,9 @@
 #--Imports
 import requests
-from bs4 import BeautifulSoup
 import regex
+import os
+from bs4 import BeautifulSoup
+from urllib.parse import urlparse
 
 #--SystemInterface
 class series:
@@ -12,7 +14,7 @@ class series:
         soup = BeautifulSoup(self.source,"lxml")
         seasons = soup.find("div",class_="tab-content").find_all("div",class_="tab-pane")
         for index in range(len(seasons)):
-            self.seasons.append(season(index+1,seasons[index]))
+            self.seasons.append(season(index+1,seasons[index],self))
 
     def __set_source(self,url):
         result = requests.get(url)
@@ -23,6 +25,7 @@ class series:
     def __init__(self,url):
         self.seasons = []
         self.source = None
+        self.cookie = None
         # TODO: Добавить информация о сеансе и Cookie
         #
         self.__set_source(url)
@@ -37,12 +40,13 @@ class season:
         for index in range(len(episodes)):
             self.episodes.append(episode(index+1,self,episodes[index]))
 
-    def __init__(self,number,source):
+    def __init__(self,number,source,series):
         print("Сбор информации о сезоне номер "+str(number))
         #--Variables
         self.number = number
         self.source = source
         self.episodes = []
+        self.series = series
         #--Functions
         self.__set_episodes()
 #--
@@ -50,28 +54,30 @@ class episode:
 
     def download(self,path):
         print("Начало загрузки серии № "+str(self.number)+" сезона № "+str(self.season.number))
-        chunk_size = 256
         headers = {
-            "Accept": "*/*",
-            "Accept-Language": "en-US,ru-RU;q=0.8,ru;q=0.5,en;q=0.3",
-            "Connection": "keep-alive",
-            "Host": "media.ling.online",
-            "Origin": "https://engvideo.pro",
-            "Range": "bytes=0-",
-            "Referer": "https://engvideo.pro/",
-            "Sec-Fetch-Dest": "video",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "cross-site",
-            "User-Agent": "Download Master"
+            'Accept': 'video/webm,video/ogg,video/*;q=0.9,application/ogg;q=0.7,audio/*;q=0.6,*/*;q=0.5',
+            'Accept-Language': 'en-US,ru-RU;q=0.8,ru;q=0.5,en;q=0.3',
+            'Connection': 'keep-alive',
+            'Host': str(urlparse(self.video_link).netloc),
+            'Origin': 'https://engvideo.pro',
+            'Range': 'bytes=0-',
+            'Referer': 'https://engvideo.pro/',
+            'Sec-Fetch-Dest': 'video',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'cross-site',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:100.0) Gecko/20100101 Firefox/100.0'
         }
-        result = requests.get(self.video_link,stream=True,headers=headers)
+        result = requests.get(self.video_link, headers=headers, stream=True)
         # TODO: Вес контента содержится в заголовке ответа "Content-Length". На основании этого можно сделать прогресс загрузки
         status_code = result.status_code
         # TODO: Добавить обработку ошибки загрузки
-        if status_code == 200:
+        if status_code in (200,206):
+            self.size = int(result.headers['Content-Length'])
+            print(self.size/1000000000)
             file_name = "S_"+str(self.season.number)+"_E_"+str(self.number)+".mp4"
             with open(path+file_name,"wb") as file:
-                for chunk in result.iter_content(chunk_size=chunk_size):
+                for chunk in result.iter_content(chunk_size=256):
+                    self.upload_size = self.upload_size+256;
                     file.write(chunk)
             print("Конец загрузки серии № " + str(self.number) + " сезона № " + str(self.season.number))
         else:
@@ -84,8 +90,15 @@ class episode:
         soup = BeautifulSoup(result.text, 'lxml')
         script = soup.find("script")
         pattern = regex.compile(r'\{(?:[^{}]|(?R))*\}')
-        spl = video_link = str(pattern.findall(script.text)[4]).replace("{","").replace("}","").replace(" ","").replace('"',"").replace(",","").split(":")
+        spl = str(pattern.findall(script.text)[4]).replace("{","").replace("}","").replace(" ","").replace('"',"").replace(",","").split(":")
         self.video_link = spl[1]+":"+spl[2]
+        path = "C:\\Users\\snmsu\\Desktop\\Test\\"
+        with open(path+"temp.txt","w") as file:
+            file.write(self.video_link)
+        with open(path + "temp.txt", "r") as file:
+            test = file.read().splitlines()
+            self.video_link = test[0]
+        os.remove(path+"temp.txt")
 
     def __set_data_link(self):
         self.data_link = self.data_link + self.source.find("div", class_="clearfix").find("div", class_="pull-left").find("h5", class_="margin_b5").find("a")["data-href"]
@@ -96,6 +109,8 @@ class episode:
         self.source = source
         self.data_link = 'https://engvideo.pro'
         self.video_link = ''
+        self.size = 0
+        self.upload_size = 0
         #
         self.__set_data_link()
         self.__set_video_link()
