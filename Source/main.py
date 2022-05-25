@@ -18,7 +18,7 @@ class series:
             for season in self.seasons:
                 print('Сезон номер '+str(season.number)+' - Количество серий - '+str(len(season.episodes)))
             print('---------------')
-            time.sleep(3)
+            time.sleep(2)
         if self.complete:
             os.system('cls')
             print('Сбор информации')
@@ -155,6 +155,10 @@ class download_manager:
             for episode in self.queue:
                 if (episode.good_download == False) and (episode.bad_download == False):
                     print("Серия номер "+str(episode.number)+" сезона номер "+str(episode.season.number)+" : "+str(round(episode.download_size/1000000))+"/"+str(round(episode.size/1000000))+" MB")
+                elif episode.good_download == True:
+                    print("Серия номер "+str(episode.number)+" сезона номер "+str(episode.season.number)+" : Загружено!")
+                elif episode.bad_download == True:
+                    print("Серия номер " + str(episode.number) + " сезона номер " + str(episode.season.number) + " : Ошибка загрузки!")
             print("-----------------")
             time.sleep(2)
             complete = True
