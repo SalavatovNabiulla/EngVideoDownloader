@@ -76,7 +76,6 @@ class episode:
         # TODO: Добавить обработку ошибки загрузки
         if status_code in (200,206):
             self.size = int(result.headers['Content-Length'])
-            print(self.size)
             file_name = "S_" + str(self.season.number) + "_E_" + str(self.number) + ".mp4"
             with open(path + file_name, "wb") as file:
                 for chunk in result.iter_content(chunk_size=256):
@@ -131,7 +130,7 @@ class download_manager:
     def __init__(self,queue,path):
         self.path = path
         self.queue = queue
-        self.thread = Thread(target=self.__start_downloading(),args=([]))
+        self.thread = Thread(target=self.__start_downloading,args=([]))
         #
         self.thread.start()
 
@@ -140,11 +139,15 @@ class download_manager:
 url = "https://engvideo.pro/ru/serials/chernobyl/"
 path = "C:\\Users\\snmsu\\Desktop\\Test\\"
 series = series(url)
+#TODO: Доделать Download manager
 queue = [series.seasons[0].episodes[0]]
 downloader = download_manager(queue,path)
-
-for i in range(100):
-    print(i)
+while queue[0].downloaded == False:
+    os.system("cls")
+    print("---")
+    print("Total size: "+str(queue[0].size/1000000)+" MB")
+    print("Downloaded size: "+str(queue[0].download_size/1000000)+" MB")
+    print("---")
     time.sleep(1)
 
 #--AnotherTODOes
