@@ -78,8 +78,9 @@ class episode:
             self.size = int(result.headers['Content-Length'])
             file_name = "S_" + str(self.season.number) + "_E_" + str(self.number) + ".mp4"
             with open(path + file_name, "wb") as file:
-                for chunk in result.iter_content(chunk_size=256):
-                    self.download_size = self.download_size + 256;
+                chunk_size = 1000
+                for chunk in result.iter_content(chunk_size=chunk_size):
+                    self.download_size = self.download_size + chunk_size;
                     file.write(chunk)
                 self.downloaded = True
         else:
