@@ -36,10 +36,16 @@ class series:
         self.complete = True
 
     def __set_source(self,url):
-        result = requests.get(url)
+        session = requests.Session()
+        result = session.get(url)
         status_code = result.status_code
-        # TODO: Сделать проверку доступности сайта, получая код ответа
-        self.source = result.text
+        if status_code == 200:
+            self.source = result.text
+            self.session = session
+            Thread(target=self.__show_progress, args=([])).start()
+            self.__set_seasons()
+        else:
+            print("Ошибка подключения к сайту. (Код ошибки: "+str(status_code)+")")
 
     def __init__(self,url,path):
         self.seasons = []
@@ -47,11 +53,8 @@ class series:
         self.cookie = None
         self.complete = False
         self.path = path
-        # TODO: Добавить информация о сеансе и Cookie
-        #
-        Thread(target=self.__show_progress, args=([])).start()
+        self.session = None
         self.__set_source(url)
-        self.__set_seasons()
 #--
 class season:
 
@@ -87,9 +90,8 @@ class episode:
             'Sec-Fetch-Site': 'cross-site',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:100.0) Gecko/20100101 Firefox/100.0'
         }
-        result = requests.get(self.video_link, headers=headers, stream=True)
+        result = self.season.series.session.get(self.video_link, headers=headers, stream=True)
         status_code = result.status_code
-        # TODO: Добавить обработку ошибки загрузки
         if status_code in (200,206):
             self.size = int(result.headers['Content-Length'])
             file_name = "S_" + str(self.season.number) + "_E_" + str(self.number) + ".mp4"
@@ -108,21 +110,21 @@ class episode:
 
     #TODO: Сделать загрузку видео ссылок в потоках
     def __set_video_link(self):
-        result = requests.get(self.data_link)
+        result = self.season.series.session.get(self.data_link)
         status_code = result.status_code
-        # TODO: Сделать проверку доступности сайта, получая код ответа
-        soup = BeautifulSoup(result.text, 'lxml')
-        script = soup.find("script")
-        pattern = regex.compile(r'\{(?:[^{}]|(?R))*\}')
-        spl = str(pattern.findall(script.text)[4]).replace("{","").replace("}","").replace(" ","").replace('"',"").replace(",","").split(":")
-        self.video_link = spl[1]+":"+spl[2]
-        path = "C:\\Users\\snmsu\\Desktop\\Test\\"
-        with open(path+"temp.txt","w") as file:
-            file.write(self.video_link)
-        with open(path + "temp.txt", "r") as file:
-            test = file.read().splitlines()
-            self.video_link = test[0]
-        os.remove(path+"temp.txt")
+        if status_code == 200:
+            soup = BeautifulSoup(result.text, 'lxml')
+            script = soup.find("script")
+            pattern = regex.compile(r'\{(?:[^{}]|(?R))*\}')
+            spl = str(pattern.findall(script.text)[4]).replace("{","").replace("}","").replace(" ","").replace('"',"").replace(",","").split(":")
+            self.video_link = spl[1]+":"+spl[2]
+            path = "C:\\Users\\snmsu\\Desktop\\Test\\"
+            with open(path+"temp.txt","w") as file:
+                file.write(self.video_link)
+            with open(path + "temp.txt", "r") as file:
+                test = file.read().splitlines()
+                self.video_link = test[0]
+            os.remove(path+"temp.txt")
 
     def __set_data_link(self):
         self.data_link = self.data_link + self.source.find("div", class_="clearfix").find("div", class_="pull-left").find("h5", class_="margin_b5").find("a")["data-href"]
@@ -204,13 +206,15 @@ def set_queue(path,series):
         print("Ошибка выбора действия")
 
 #--UserInterface
-
+#TODO: Создать класс для интерфейса чтобы все выводы в консоль выполнялись в его потоке
 url = input("Введите ссылку на сериал: ")
 path = input("Введите папку загрузки: ")
 if path[len(path)-1] != "\\":
     path = path+"\\"
-series = series(url,path)
-
+if os.path.isdir(path):
+    series = series(url,path)
+else:
+    print("Нет доступа к указанному каталогу")
 #--AnotherTODOes
 #TODO: Добавить возможность устанавливать прокси на случай если сериал в стране заблокирован
 #TODO: Добавить скорость загрузки
