@@ -155,12 +155,8 @@ class download_manager:
             for episode in self.queue:
                 if (episode.good_download == False) and (episode.bad_download == False):
                     print("Серия номер "+str(episode.number)+" сезона номер "+str(episode.season.number)+" : "+str(round(episode.download_size/1000000))+"/"+str(round(episode.size/1000000))+" MB")
-                elif episode.good_download == True:
-                    print("Серия номер "+str(episode.number)+" сезона номер "+str(episode.season.number)+" : Загружено!")
-                elif episode.bad_download == True:
-                    print("Серия номер " + str(episode.number) + " сезона номер " + str(episode.season.number) + " : Ошибка загрузки!")
             print("-----------------")
-            time.sleep(2)
+            time.sleep(1)
             complete = True
             for episode in self.queue:
                 if (episode.good_download == False) and (episode.bad_download == False):
