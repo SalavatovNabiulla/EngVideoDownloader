@@ -36,16 +36,19 @@ class series:
         self.complete = True
 
     def __set_source(self,url):
-        session = requests.Session()
-        result = session.get(url)
-        status_code = result.status_code
-        if status_code == 200:
-            self.source = result.text
-            self.session = session
-            Thread(target=self.__show_progress, args=([])).start()
-            self.__set_seasons()
-        else:
-            print("Ошибка подключения к сайту. (Код ошибки: "+str(status_code)+")")
+        try:
+            session = requests.Session()
+            result = session.get(url)
+            status_code = result.status_code
+            if status_code == 200:
+                self.source = result.text
+                self.session = session
+                Thread(target=self.__show_progress, args=([])).start()
+                self.__set_seasons()
+            else:
+                print("Ошибка подключения к сайту. (Код ошибки: "+str(status_code)+")")
+        except Exception as ex:
+            print("Ошибка подключения к сайту")
 
     def __init__(self,url,path):
         self.seasons = []
@@ -147,7 +150,6 @@ class episode:
 class download_manager:
 
     #TODO: Добавить прогресс бары
-    #TODO: Добавить сортировку по каталогам
 
     def __show_progress(self):
         while self.complete == False:
@@ -174,7 +176,14 @@ class download_manager:
         for episode in self.queue:
             # print("Начало загрузки эпизода номер "+str(episode.number)+" сезона номер "+str(episode.season.number))
             self.current_task = episode
-            Thread(target=episode.download,args=([self.path])).start()
+            #
+            if os.path.isdir(self.path+str(episode.season.number)):
+                season_path = self.path+str(episode.season.number)+"\\"
+            else:
+                os.mkdir(self.path+str(episode.season.number))
+                season_path = self.path+str(episode.season.number)+"\\"
+            #
+            Thread(target=episode.download,args=([season_path])).start()
 
     def __init__(self,queue,path):
         self.path = path
