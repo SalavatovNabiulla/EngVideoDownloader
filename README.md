@@ -1,2 +1,2 @@
 # EngvideoDownloader
- Parser for download EngVideo
+ Download manager for engvideo.pro 
