@@ -162,7 +162,11 @@ class download_manager:
                 if (episode.good_download == False) and (episode.bad_download == False):
                     complete = False
             self.complete = complete
-        #TODO: Результаты загрузки (Good / Bad)
+        #
+        os.system('cls')
+        print("-----------------")
+        print("Загрузка завершена!")
+        print("-----------------")
 
     def __start_downloading(self):
         for episode in self.queue:
