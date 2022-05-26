@@ -108,7 +108,6 @@ class episode:
             # print("Ошибка загрузки серии (Код ошибки: "+str(status_code)+")")
             self.bad_download = True
 
-    #TODO: Сделать загрузку видео ссылок в потоках
     def __set_video_link(self):
         result = self.season.series.session.get(self.data_link)
         status_code = result.status_code
@@ -142,12 +141,9 @@ class episode:
         #
         self.__set_data_link()
         self.__set_video_link()
-        # TODO: Добавить определение названия серии
 #--
 class download_manager:
 
-    #TODO: Добавить прогресс бары
-    #TODO: Добавить сортировку по каталогам
 
     def __show_progress(self):
         while self.complete == False:
@@ -206,7 +202,6 @@ def set_queue(path,series):
         print("Ошибка выбора действия")
 
 #--UserInterface
-#TODO: Создать класс для интерфейса чтобы все выводы в консоль выполнялись в его потоке
 url = input("Введите ссылку на сериал: ")
 path = input("Введите папку загрузки: ")
 if path[len(path)-1] != "\\":
@@ -215,6 +210,3 @@ if os.path.isdir(path):
     series = series(url,path)
 else:
     print("Нет доступа к указанному каталогу")
-#--AnotherTODOes
-#TODO: Добавить возможность устанавливать прокси на случай если сериал в стране заблокирован
-#TODO: Добавить скорость загрузки
