@@ -127,6 +127,7 @@ class episode:
         self.download_size = 0
         self.good_download = False
         self.bad_download = False
+        self.last_download_size = 0
         #
         self.__set_data_link()
         # TODO: Добавить определение названия серии (Фича)
@@ -137,7 +138,7 @@ class user_interface_cli:
 
         if self.path[len(self.path) - 1] != "\\":
             self.path = self.path + "\\"
-        self.path.replace('"',"")
+        self.path = self.path.replace('"',"")
 
     def __step_3(self):
         for episode in self.queue:
@@ -156,7 +157,8 @@ class user_interface_cli:
             print("-----------------")
             for episode in self.queue:
                 if (episode.good_download == False) and (episode.bad_download == False):
-                    print("Серия номер "+str(episode.number)+" сезона номер "+str(episode.season.number)+" : "+str(round(episode.download_size/1000000))+"/"+str(round(episode.size/1000000))+" MB")
+                    print("Серия номер "+str(episode.number)+" сезона номер "+str(episode.season.number)+" : "+str(round(episode.download_size/1000000))+"/"+str(round(episode.size/1000000))+" MB"+" : "+str(round(((episode.download_size/1000000)-(episode.last_download_size/1000000)),2))+"MB/Sec")
+                    episode.last_download_size = episode.download_size
             print("-----------------")
             time.sleep(1)
             download_complete = True
@@ -172,11 +174,15 @@ class user_interface_cli:
 
     def __step_2(self):
         os.system('cls')
+        print("-----------------")
+        for season in self.series.seasons:
+            print("Сезон номер "+str(season.number)+", количество серий "+str(len(season.episodes)))
+        print("-----------------")
         print(
-        '''Выберите действие:
-        1) Загрузить сериал целиком
-        2) Загрузить определенные сезоны целиком
-        3) Загрузить определенные серии определенного сезона''')
+'''Выберите действие:
+1) Загрузить сериал целиком
+2) Загрузить определенные сезоны целиком
+3) Загрузить определенные серии определенного сезона''')
         choice = input(": ")
         if choice == "1":
             for season in self.series.seasons:
@@ -261,4 +267,3 @@ ui = user_interface_cli()
 
 #--AnotherTODOes
 #TODO: Добавить возможность устанавливать прокси на случай если сериал в стране заблокирован (Фича)
-#TODO: Добавить скорость загрузки (Фича)
