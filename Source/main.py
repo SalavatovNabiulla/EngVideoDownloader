@@ -106,6 +106,7 @@ class episode:
             spl = str(pattern.findall(script.text)[4]).replace("{","").replace("}","").replace(" ","").replace('"',"").replace(",","").split(":")
             self.video_link = spl[1]+":"+spl[2]
             tmp_file = "temp_"+str(self.season.number)+"_"+str(self.number)+".txt"
+            #TODO: Придумать вариант без временного файла (Костыль)
             with open(tmp_file,"w") as file:
                 file.write(self.video_link)
             with open(tmp_file, "r") as file:
@@ -129,52 +130,6 @@ class episode:
         #
         self.__set_data_link()
         # TODO: Добавить определение названия серии (Фича)
-#--
-class download_manager:
-
-    #TODO: Добавить прогресс бары (Фича)
-
-    def __show_progress(self):
-        while self.complete == False:
-            os.system('cls')
-            print("Очередь загрузки:")
-            print("-----------------")
-            for episode in self.queue:
-                if (episode.good_download == False) and (episode.bad_download == False):
-                    print("Серия номер "+str(episode.number)+" сезона номер "+str(episode.season.number)+" : "+str(round(episode.download_size/1000000))+"/"+str(round(episode.size/1000000))+" MB")
-            print("-----------------")
-            time.sleep(1)
-            complete = True
-            for episode in self.queue:
-                if (episode.good_download == False) and (episode.bad_download == False):
-                    complete = False
-            self.complete = complete
-        #
-        os.system('cls')
-        print("-----------------")
-        print("Загрузка завершена!")
-        print("-----------------")
-
-    def __start_downloading(self):
-        for episode in self.queue:
-            self.current_task = episode
-            #
-            if os.path.isdir(self.path+str(episode.season.number)):
-                season_path = self.path+str(episode.season.number)+"\\"
-            else:
-                os.mkdir(self.path+str(episode.season.number))
-                season_path = self.path+str(episode.season.number)+"\\"
-            #
-            Thread(target=episode.download,args=([season_path])).start()
-
-    def __init__(self,queue,path):
-        self.path = path
-        self.queue = queue
-        self.complete = False
-        self.current_task = None
-        #
-        Thread(target=self.__show_progress,args=([])).start()
-        Thread(target=self.__start_downloading, args=([])).start()
 #--
 class user_interface_cli:
 
@@ -216,27 +171,41 @@ class user_interface_cli:
         print("-----------------")
 
     def __step_2(self):
-        #TODO: Добавить возможность загружать конкретные серии сезона (Фича)
         os.system('cls')
         print(
         '''Выберите действие:
         1) Загрузить сериал целиком
-        2) Загрузить определенные сезоны целиком''')
-        ask = input(": ")
-        if ask == "1":
+        2) Загрузить определенные сезоны целиком
+        3) Загрузить определенные серии определенного сезона''')
+        choice = input(": ")
+        if choice == "1":
             for season in self.series.seasons:
                 for episode in season.episodes:
                     self.queue.append(episode)
-            # dm = download_manager(queue, self.path)
             self.step = self.step + 1
-        elif ask == "2":
+        elif choice == "2":
             os.system('cls')
             seasons = input('Введите номера сезонов через запятую: ').split(',')
             for season in seasons:
                 for episode in self.series.seasons[int(season) - 1].episodes:
                     self.queue.append(episode)
-            # dm = download_manager(queue, self.path)
             self.step = self.step + 1
+        elif choice == "3":
+            os.system('cls')
+            season_index = input('Введите номер сезона: ')
+            try:
+                os.system('cls')
+                season = self.series.seasons[int(season_index)-1]
+                episodes = input('Введите номера эпизодов через запятую: ').split(',')
+                for episode_index in episodes:
+                    try:
+                        episode = season.episodes[int(episode_index)-1]
+                        self.queue.append(episode)
+                    except Exception as ex:
+                        pass
+                self.step = self.step + 1
+            except Exception as ex:
+                print("Сезон с таким номером не найден. Повторите попытку")
         else:
             print("Ошибка выбора действия. Повторите попытку")
 
