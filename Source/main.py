@@ -2,6 +2,7 @@
 import time
 import requests
 import regex
+import re
 import os
 from threading import Thread
 from bs4 import BeautifulSoup
@@ -10,23 +11,15 @@ from urllib.parse import urlparse
 #--SystemInterface
 class series:
 
-    def __show_progress(self):
-        while self.complete == False:
-            os.system('cls')
-            print('Сбор информации')
-            print('---------------')
-            for season in self.seasons:
-                print('Сезон номер '+str(season.number)+' - Количество серий - '+str(len(season.episodes)))
-            print('---------------')
-            time.sleep(2)
-        if self.complete:
-            os.system('cls')
-            print('Сбор информации')
-            print('---------------')
-            for season in self.seasons:
-                print('Сезон номер '+str(season.number)+' - Количество серий - '+str(len(season.episodes)))
-            print('---------------')
-            set_queue(path,self)
+    def __set_path(self):
+        self.path = self.path + self.name + "\\"
+        if os.path.isdir(self.path) == False:
+            os.mkdir(self.path)
+
+    def __set_name(self):
+        soup = BeautifulSoup(self.source,"lxml")
+        name = soup.find("html").find("head").find("title").text
+        self.name = ' '.join(re.findall(r'«([^<>]+)»', name))
 
     def __set_seasons(self):
         soup = BeautifulSoup(self.source,"lxml")
@@ -36,16 +29,24 @@ class series:
         self.complete = True
 
     def __set_source(self,url):
-        session = requests.Session()
-        result = session.get(url)
-        status_code = result.status_code
-        if status_code == 200:
-            self.source = result.text
-            self.session = session
-            Thread(target=self.__show_progress, args=([])).start()
-            self.__set_seasons()
-        else:
-            print("Ошибка подключения к сайту. (Код ошибки: "+str(status_code)+")")
+        try:
+            session = requests.Session()
+            result = session.get(url)
+            status_code = result.status_code
+            if status_code == 200:
+                self.source = result.text
+                self.session = session
+                self.status_code = status_code
+                self.connection_status = True
+                self.__set_name()
+                self.__set_path()
+                self.__set_seasons()
+            else:
+                self.status_code = status_code
+                self.connection_status = False
+        except Exception as ex:
+            self.connection_status = False
+            print(ex)
 
     def __init__(self,url,path):
         self.seasons = []
@@ -54,6 +55,9 @@ class series:
         self.complete = False
         self.path = path
         self.session = None
+        self.status_code = None
+        self.connection_status = None
+        self.name = None
         self.__set_source(url)
 #--
 class season:
@@ -62,10 +66,8 @@ class season:
         episodes = self.source.find("ul").find_all("li")
         for index in range(len(episodes)):
             self.episodes.append(episode(index+1,self,episodes[index]))
-        # print("Количество серий: "+str(len(self.episodes)))
 
     def __init__(self,number,source,series):
-        # print("Сбор информации о сезоне номер "+str(number))
         #--Variables
         self.number = number
         self.source = source
@@ -77,6 +79,9 @@ class season:
 class episode:
 
     def download(self,path):
+        if len(self.video_link) == 0:
+            self.__set_video_link()
+        #
         headers = {
             'Accept': 'video/webm,video/ogg,video/*;q=0.9,application/ogg;q=0.7,audio/*;q=0.6,*/*;q=0.5',
             'Accept-Language': 'en-US,ru-RU;q=0.8,ru;q=0.5,en;q=0.3',
@@ -99,13 +104,10 @@ class episode:
             with open(path + file_name, "wb") as file:
                 chunk_size = 256
                 for chunk in result.iter_content(chunk_size=chunk_size):
-                    self.download_size = self.download_size + chunk_size;
+                    self.download_size = self.download_size + chunk_size
                     file.write(chunk)
-                    # print("Загружено: "+str(round(self.download_size/1000000))+"/"+str(round(self.size/1000000))+" MB")
                 self.good_download = True
-            # print("Завершение загрузки эпизода номер "+str(episode.number)+" сезона номер "+str(episode.season.number))
         else:
-            # print("Ошибка загрузки серии (Код ошибки: "+str(status_code)+")")
             self.bad_download = True
 
     def __set_video_link(self):
@@ -117,13 +119,7 @@ class episode:
             pattern = regex.compile(r'\{(?:[^{}]|(?R))*\}')
             spl = str(pattern.findall(script.text)[4]).replace("{","").replace("}","").replace(" ","").replace('"',"").replace(",","").split(":")
             self.video_link = spl[1]+":"+spl[2]
-            path = "C:\\Users\\snmsu\\Desktop\\Test\\"
-            with open(path+"temp.txt","w") as file:
-                file.write(self.video_link)
-            with open(path + "temp.txt", "r") as file:
-                test = file.read().splitlines()
-                self.video_link = test[0]
-            os.remove(path+"temp.txt")
+            self.video_link = self.video_link.strip()
 
     def __set_data_link(self):
         self.data_link = self.data_link + self.source.find("div", class_="clearfix").find("div", class_="pull-left").find("h5", class_="margin_b5").find("a")["data-href"]
@@ -138,75 +134,179 @@ class episode:
         self.download_size = 0
         self.good_download = False
         self.bad_download = False
+        self.last_download_size = 0
         #
         self.__set_data_link()
-        self.__set_video_link()
 #--
-class download_manager:
+class user_interface_cli:
 
+    def __validate_path(self):
 
-    def __show_progress(self):
-        while self.complete == False:
+        if self.path[len(self.path) - 1] != "\\":
+            self.path = self.path + "\\"
+        self.path = self.path.replace('"',"")
+
+    def __step_4(self):
+        print(
+'''Выберите действие:
+1) Продолжить работу с текущим сериалом
+2) Начать работу с новым сериалом
+3) Завершить работу
+''')
+        choice = input(": ")
+        if choice == "1":
+            self.step = 0
+            self.queue = []
+            self.download_complete = False
+            #
+            self.step = 2
+        elif choice == "2":
+            self.series = None
+            self.active = True
+            self.url = None
+            self.step = 0
+            self.queue = []
+            self.download_complete = False
+        elif choice == "3":
+            self.active = False
+            print('Хорошего дня!')
+
+    def __step_3(self):
+        for episode in self.queue:
+            #
+            if os.path.isdir(self.series.path +"Season "+ str(episode.season.number)):
+                season_path = self.series.path +"Season "+ str(episode.season.number) + "\\"
+            else:
+                os.mkdir(self.series.path +"Season "+ str(episode.season.number))
+                season_path = self.series.path +"Season "+ str(episode.season.number) + "\\"
+            #
+            Thread(target=episode.download, args=([season_path])).start()
+        #
+        while self.download_complete == False:
             os.system('cls')
             print("Очередь загрузки:")
             print("-----------------")
             for episode in self.queue:
                 if (episode.good_download == False) and (episode.bad_download == False):
-                    print("Серия номер "+str(episode.number)+" сезона номер "+str(episode.season.number)+" : "+str(round(episode.download_size/1000000))+"/"+str(round(episode.size/1000000))+" MB")
+                    print("Серия номер "+str(episode.number)+" сезона номер "+str(episode.season.number)+" : "+str(round(episode.download_size/1000000))+"/"+str(round(episode.size/1000000))+" MB"+" : "+str(round(((episode.download_size/1000000)-(episode.last_download_size/1000000)),2))+"MB/Sec")
+                    episode.last_download_size = episode.download_size
             print("-----------------")
             time.sleep(1)
-            complete = True
+            download_complete = True
             for episode in self.queue:
                 if (episode.good_download == False) and (episode.bad_download == False):
-                    complete = False
-            self.complete = complete
+                    download_complete = False
+            self.download_complete = download_complete
         #
         os.system('cls')
         print("-----------------")
         print("Загрузка завершена!")
         print("-----------------")
+        self.step = self.step + 1
 
-    def __start_downloading(self):
-        for episode in self.queue:
-            # print("Начало загрузки эпизода номер "+str(episode.number)+" сезона номер "+str(episode.season.number))
-            self.current_task = episode
-            Thread(target=episode.download,args=([self.path])).start()
+    def __step_2(self):
+        os.system('cls')
+        print("-----------------")
+        print(str(self.series.name))
+        print("-----------------")
+        for season in self.series.seasons:
+            print("Сезон номер "+str(season.number)+", количество серий "+str(len(season.episodes)))
+        print("-----------------")
+        print(
+'''Выберите действие:
+1) Загрузить сериал целиком
+2) Загрузить определенные сезоны целиком
+3) Загрузить определенные серии определенного сезона''')
+        choice = input(": ")
+        if choice == "1":
+            for season in self.series.seasons:
+                for episode in season.episodes:
+                    self.queue.append(episode)
+            self.step = self.step + 1
+        elif choice == "2":
+            os.system('cls')
+            seasons = input('Введите номера сезонов через запятую: ').split(',')
+            for season in seasons:
+                for episode in self.series.seasons[int(season) - 1].episodes:
+                    self.queue.append(episode)
+            self.step = self.step + 1
+        elif choice == "3":
+            os.system('cls')
+            season_index = input('Введите номер сезона: ')
+            try:
+                os.system('cls')
+                season = self.series.seasons[int(season_index)-1]
+                episodes = input('Введите номера эпизодов через запятую: ').split(',')
+                for episode_index in episodes:
+                    try:
+                        episode = season.episodes[int(episode_index)-1]
+                        self.queue.append(episode)
+                    except Exception as ex:
+                        pass
+                self.step = self.step + 1
+            except Exception as ex:
+                print("Сезон с таким номером не найден. Повторите попытку")
+        else:
+            print("Ошибка выбора действия. Повторите попытку")
 
-    def __init__(self,queue,path):
-        self.path = path
-        self.queue = queue
-        self.complete = False
-        self.current_task = None
+    def __step_1(self):
+        os.system('cls')
+        self.series = series(self.url, self.path)
+        if self.series.connection_status:
+            self.step = self.step + 1
+        elif self.series.connection_status == False:
+            os.system('cls')
+            print("-----------------")
+            print("Не удалось получить доступ к сайту!")
+            print("-----------------")
+            print("1) Проверьте подключение к сети")
+            print("2) Проверьте работоспособность ссылки в браузере")
+            print("3) Если сериал заблокирован в вашей стране то включите VPN")
+            print("-----------------")
+            print("Вы будете автоматически перенаправлены в начало через несколько секунд")
+            print("-----------------")
+            time.sleep(10)
+            self.step = self.step - 1
+
+    def __step_0(self):
+        os.system('cls')
+        self.url = input("Введите ссылку на сериал: ")
+        if (self.path == None):
+            self.path = input("Введите папку загрузки: ")
+            self.__validate_path()
+            if (os.path.isdir(self.path) == False):
+                while (os.path.isdir(self.path) == False):
+                    self.path = input("Введите папку загрузки: ")
+                    self.__validate_path()
+        self.step = self.step + 1
+
+    def __start_interface(self):
+        os.system('cls')
+        while self.active:
+            if (self.step == 0):
+                self.__step_0()
+            elif (self.step == 1):
+                self.__step_1()
+            elif (self.step == 2):
+                self.__step_2()
+            elif (self.step == 3):
+                self.__step_3()
+            elif (self.step == 4):
+                self.__step_4()
+
+    def __init__(self):
+        self.series = None
+        self.active = True
+        self.url = None
+        self.path = None
+        self.step = 0
+        self.queue = []
+        self.download_complete = False
         #
-        Thread(target=self.__show_progress,args=([])).start()
-        Thread(target=self.__start_downloading, args=([])).start()
-#--
-def set_queue(path,series):
-    ask = input('''Выберите действие:
-    1) Загрузить сериал целиком
-    2) Загрузить определенные сезоны целиком 
-    :''')
-    queue = []
-    if ask == "1":
-        for season in series.seasons:
-            for episode in season.episodes:
-                queue.append(episode)
-        downloader = download_manager(queue, path)
-    elif ask == "2":
-        seasons = input('Введите номера сезонов через запятую: ').split(',')
-        for season in seasons:
-            for episode in series.seasons[int(season) - 1].episodes:
-                queue.append(episode)
-        downloader = download_manager(queue, path)
-    else:
-        print("Ошибка выбора действия")
+        Thread(target=self.__start_interface,args=([])).start()
 
-#--UserInterface
-url = input("Введите ссылку на сериал: ")
-path = input("Введите папку загрузки: ")
-if path[len(path)-1] != "\\":
-    path = path+"\\"
-if os.path.isdir(path):
-    series = series(url,path)
-else:
-    print("Нет доступа к указанному каталогу")
+#--main
+
+ui = user_interface_cli()
+
+#--AnotherTODOes
