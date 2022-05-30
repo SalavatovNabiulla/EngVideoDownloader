@@ -2,6 +2,7 @@
 import time
 import requests
 import regex
+import re
 import os
 from threading import Thread
 from bs4 import BeautifulSoup
@@ -10,6 +11,15 @@ from urllib.parse import urlparse
 #--SystemInterface
 class series:
 
+    def __set_path(self):
+        self.path = self.path + self.name + "\\"
+        if os.path.isdir(self.path) == False:
+            os.mkdir(self.path)
+
+    def __set_name(self):
+        soup = BeautifulSoup(self.source,"lxml")
+        name = soup.find("html").find("head").find("title").text
+        self.name = ' '.join(re.findall(r'«([^<>]+)»', name))
 
     def __set_seasons(self):
         soup = BeautifulSoup(self.source,"lxml")
@@ -28,6 +38,8 @@ class series:
                 self.session = session
                 self.status_code = status_code
                 self.connection_status = True
+                self.__set_name()
+                self.__set_path()
                 self.__set_seasons()
             else:
                 self.status_code = status_code
@@ -45,6 +57,7 @@ class series:
         self.session = None
         self.status_code = None
         self.connection_status = None
+        self.name = None
         self.__set_source(url)
 #--
 class season:
@@ -66,7 +79,8 @@ class season:
 class episode:
 
     def download(self,path):
-        self.__set_video_link()
+        if len(self.video_link) == 0:
+            self.__set_video_link()
         #
         headers = {
             'Accept': 'video/webm,video/ogg,video/*;q=0.9,application/ogg;q=0.7,audio/*;q=0.6,*/*;q=0.5',
@@ -90,7 +104,7 @@ class episode:
             with open(path + file_name, "wb") as file:
                 chunk_size = 256
                 for chunk in result.iter_content(chunk_size=chunk_size):
-                    self.download_size = self.download_size + chunk_size;
+                    self.download_size = self.download_size + chunk_size
                     file.write(chunk)
                 self.good_download = True
         else:
@@ -105,14 +119,7 @@ class episode:
             pattern = regex.compile(r'\{(?:[^{}]|(?R))*\}')
             spl = str(pattern.findall(script.text)[4]).replace("{","").replace("}","").replace(" ","").replace('"',"").replace(",","").split(":")
             self.video_link = spl[1]+":"+spl[2]
-            tmp_file = "temp_"+str(self.season.number)+"_"+str(self.number)+".txt"
-            #TODO: Придумать вариант без временного файла (Костыль)
-            with open(tmp_file,"w") as file:
-                file.write(self.video_link)
-            with open(tmp_file, "r") as file:
-                test = file.read().splitlines()
-                self.video_link = test[0]
-            os.remove(tmp_file)
+            self.video_link = self.video_link.strip()
 
     def __set_data_link(self):
         self.data_link = self.data_link + self.source.find("div", class_="clearfix").find("div", class_="pull-left").find("h5", class_="margin_b5").find("a")["data-href"]
@@ -130,7 +137,6 @@ class episode:
         self.last_download_size = 0
         #
         self.__set_data_link()
-        # TODO: Добавить определение названия серии (Фича)
 #--
 class user_interface_cli:
 
@@ -140,14 +146,39 @@ class user_interface_cli:
             self.path = self.path + "\\"
         self.path = self.path.replace('"',"")
 
+    def __step_4(self):
+        print(
+'''Выберите действие:
+1) Продолжить работу с текущим сериалом
+2) Начать работу с новым сериалом
+3) Завершить работу
+''')
+        choice = input(": ")
+        if choice == "1":
+            self.step = 0
+            self.queue = []
+            self.download_complete = False
+            #
+            self.step = 2
+        elif choice == "2":
+            self.series = None
+            self.active = True
+            self.url = None
+            self.step = 0
+            self.queue = []
+            self.download_complete = False
+        elif choice == "3":
+            self.active = False
+            print('Хорошего дня!')
+
     def __step_3(self):
         for episode in self.queue:
             #
-            if os.path.isdir(self.path + str(episode.season.number)):
-                season_path = self.path + str(episode.season.number) + "\\"
+            if os.path.isdir(self.series.path +"Season "+ str(episode.season.number)):
+                season_path = self.series.path +"Season "+ str(episode.season.number) + "\\"
             else:
-                os.mkdir(self.path + str(episode.season.number))
-                season_path = self.path + str(episode.season.number) + "\\"
+                os.mkdir(self.series.path +"Season "+ str(episode.season.number))
+                season_path = self.series.path +"Season "+ str(episode.season.number) + "\\"
             #
             Thread(target=episode.download, args=([season_path])).start()
         #
@@ -171,9 +202,12 @@ class user_interface_cli:
         print("-----------------")
         print("Загрузка завершена!")
         print("-----------------")
+        self.step = self.step + 1
 
     def __step_2(self):
         os.system('cls')
+        print("-----------------")
+        print(str(self.series.name))
         print("-----------------")
         for season in self.series.seasons:
             print("Сезон номер "+str(season.number)+", количество серий "+str(len(season.episodes)))
@@ -221,13 +255,22 @@ class user_interface_cli:
         if self.series.connection_status:
             self.step = self.step + 1
         elif self.series.connection_status == False:
-            print("Не удалось получить доступ к сайту. Проверьте подключение к интернету, ссылку и повторите попытку")
+            os.system('cls')
+            print("-----------------")
+            print("Не удалось получить доступ к сайту!")
+            print("-----------------")
+            print("1) Проверьте подключение к сети")
+            print("2) Проверьте работоспособность ссылки в браузере")
+            print("3) Если сериал заблокирован в вашей стране то включите VPN")
+            print("-----------------")
+            print("Вы будете автоматически перенаправлены в начало через несколько секунд")
+            print("-----------------")
+            time.sleep(10)
             self.step = self.step - 1
 
     def __step_0(self):
         os.system('cls')
         self.url = input("Введите ссылку на сериал: ")
-        #TODO: Добавить валидацию ссылки (Фича)
         if (self.path == None):
             self.path = input("Введите папку загрузки: ")
             self.__validate_path()
@@ -248,7 +291,8 @@ class user_interface_cli:
                 self.__step_2()
             elif (self.step == 3):
                 self.__step_3()
-                self.active = False
+            elif (self.step == 4):
+                self.__step_4()
 
     def __init__(self):
         self.series = None
@@ -266,4 +310,3 @@ class user_interface_cli:
 ui = user_interface_cli()
 
 #--AnotherTODOes
-#TODO: Добавить возможность устанавливать прокси на случай если сериал в стране заблокирован (Фича)
